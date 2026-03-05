@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hotel Audit</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07111f;--surf:#0e1e33;--surf2:#152744;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --blue:#1d6ff5;--sky:#38bdf8;--cyan:#06b6d4;--teal:#0d9488;
+  --green:#16a34a;--glow:#22c55e;--amber:#f59e0b;--red:#ef4444;
+  --gold:#fbbf24;--txt:#f0f6ff;--txt2:#94a3b8;--txt3:#475569;
+  --pass:#10b981;--fail:#ef4444;
+  --mono:'JetBrains Mono',monospace;--sans:'Noto Sans Thai',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:15px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(rgba(56,189,248,0.03) 1px,transparent 1px);background-size:32px 32px;}
+
+.screen{position:absolute;inset:0;z-index:1;display:none;flex-direction:column;overflow:hidden;}
+.screen.on{display:flex;}
+
+/* ══ SETUP ══ */
+#s-setup{background:linear-gradient(170deg,#07111f 0%,#0d1f3d 55%,#07111f 100%);
+  overflow-y:auto;padding:24px 18px 52px;align-items:stretch;gap:12px;}
+.setup-hd{text-align:center;padding-top:8px;}
+.setup-hd .logo{font-size:44px;filter:drop-shadow(0 0 18px rgba(6,182,212,.55));display:block;margin-bottom:8px;}
+.setup-hd h1{font-size:21px;font-weight:900;letter-spacing:-.5px;}
+.setup-hd h1 em{color:var(--cyan);font-style:normal;}
+.setup-hd p{color:var(--txt2);font-size:12px;margin-top:4px;}
+.card{background:var(--surf);border:1px solid var(--border2);border-radius:18px;padding:18px;}
+.card-title{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;}
+label.lbl{font-size:11px;color:var(--txt2);font-weight:600;display:block;margin-bottom:6px;}
+input[type=text],input[type=date],select{width:100%;background:rgba(255,255,255,0.06);border:1.5px solid var(--border2);
+  border-radius:11px;padding:12px 14px;color:var(--txt);font-size:15px;font-family:var(--sans);outline:none;
+  transition:border-color .2s;-webkit-appearance:none;}
+input:focus,select:focus{border-color:var(--cyan);}
+select option{background:#0e1e33;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.type-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;}
+.tybtn{padding:10px 5px;border-radius:11px;border:2px solid var(--border2);background:transparent;
+  color:var(--txt2);font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;
+  text-align:center;transition:all .15s;line-height:1.35;}
+.tybtn.on{border-color:var(--cyan);background:rgba(6,182,212,.14);color:var(--cyan);}
+.score-legend-setup{display:flex;gap:5px;flex-wrap:wrap;margin-top:2px;}
+.sleg{font-size:10px;padding:4px 8px;border-radius:6px;font-family:var(--mono);font-weight:700;}
+.btn-go{width:100%;border:none;border-radius:15px;padding:16px;font-family:var(--sans);
+  font-size:17px;font-weight:800;cursor:pointer;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;
+  box-shadow:0 8px 28px rgba(29,111,245,.4);
+  display:flex;align-items:center;justify-content:center;gap:9px;transition:transform .15s;}
+.btn-go:active{transform:scale(.97);}
+
+/* ══ AUDIT ══ */
+#s-audit{background:var(--bg);}
+.topbar{background:rgba(7,17,31,.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+  padding:9px 14px;display:flex;align-items:center;gap:11px;flex-shrink:0;z-index:50;}
+.room-chip{background:var(--gold);color:#000;font-size:15px;font-weight:900;
+  padding:5px 12px;border-radius:9px;font-family:var(--mono);white-space:nowrap;}
+.tb-info{flex:1;min-width:0;}
+.tb-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tb-meta{font-size:10px;color:var(--txt2);}
+.live-wrap{text-align:center;}
+.live-num{font-family:var(--mono);font-size:24px;font-weight:700;line-height:1;transition:color .3s;}
+.live-den{font-size:9px;color:var(--txt3);}
+.progbar{height:3px;background:var(--surf);flex-shrink:0;}
+.progbar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--glow));transition:width .3s;}
+.sectabs{display:flex;overflow-x:auto;gap:5px;padding:8px 12px;flex-shrink:0;
+  background:var(--surf);border-bottom:1px solid var(--border);scrollbar-width:none;}
+.sectabs::-webkit-scrollbar{display:none;}
+.stab{flex-shrink:0;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);
+  background:transparent;color:var(--txt2);font-family:var(--sans);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+.stab.on{border-color:var(--cyan);background:rgba(6,182,212,.14);color:var(--cyan);}
+.stab-ok{font-size:9px;color:var(--glow);}
+.ascroll{flex:1;overflow-y:auto;overscroll-behavior:contain;}
+.ascroll::-webkit-scrollbar{width:3px;}
+.ascroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.spanel{display:none;padding-bottom:6px;}
+.spanel.on{display:block;}
+.spanel-hd{display:flex;align-items:center;gap:9px;padding:12px 15px 8px;border-bottom:1px solid var(--border);}
+.spanel-icon{font-size:18px;}
+.spanel-name{font-size:14px;font-weight:800;flex:1;}
+.spanel-score{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.s-legend{margin:6px 15px 2px 15px;display:flex;gap:5px;flex-wrap:wrap;}
+.s-leg-item{font-size:9px;padding:2px 7px;border-radius:5px;font-family:var(--mono);font-weight:700;}
+.item{padding:11px 15px;border-bottom:1px solid var(--border);}
+.item-top{display:flex;align-items:flex-start;gap:9px;}
+.item-no{font-family:var(--mono);font-size:10px;color:var(--txt3);min-width:20px;padding-top:2px;}
+.item-txt{flex:1;font-size:14px;line-height:1.45;font-weight:500;}
+.item-txt.done{color:var(--txt3);}
+.score-row{display:flex;gap:5px;margin-top:9px;margin-left:29px;}
+.sbtn{flex:1;padding:10px 3px;border-radius:10px;border:2px solid var(--border2);
+  background:transparent;font-family:var(--mono);font-size:13px;font-weight:700;
+  cursor:pointer;text-align:center;transition:all .12s;}
+.sbtn:active{transform:scale(.94);}
+.sbtn.s1{color:#fca5a5;} .sbtn.s2{color:#fcd34d;} .sbtn.s3{color:#93c5fd;}
+.sbtn.s4{color:#6ee7b7;} .sbtn.s5{color:#86efac;} .sbtn.sna{color:#9ca3af;}
+.sbtn.s1.on{background:#991b1b;border-color:#ef4444;color:#fff;box-shadow:0 3px 12px rgba(239,68,68,.4);}
+.sbtn.s2.on{background:#92400e;border-color:#f59e0b;color:#fff;box-shadow:0 3px 12px rgba(245,158,11,.4);}
+.sbtn.s3.on{background:#1d4ed8;border-color:#60a5fa;color:#fff;box-shadow:0 3px 12px rgba(96,165,250,.4);}
+.sbtn.s4.on{background:#065f46;border-color:#34d399;color:#fff;box-shadow:0 3px 12px rgba(52,211,153,.4);}
+.sbtn.s5.on{background:#14532d;border-color:#22c55e;color:#fff;box-shadow:0 3px 12px rgba(34,197,94,.4);}
+.sbtn.sna.on{background:#374151;border-color:#9ca3af;color:#fff;}
+
+/* photo */
+.photo-wrap{margin:10px 15px 0 29px;background:rgba(255,255,255,0.025);
+  border:1.5px dashed var(--border2);border-radius:13px;padding:12px;}
+.photo-wrap h4{font-size:11px;font-weight:700;color:var(--sky);margin-bottom:8px;}
+.photo-grid{display:flex;flex-wrap:wrap;gap:7px;}
+.photo-thumb{width:65px;height:65px;border-radius:9px;object-fit:cover;border:2px solid var(--border2);cursor:pointer;}
+.btn-addphoto{width:65px;height:65px;border-radius:9px;border:2px dashed var(--txt3);
+  background:transparent;color:var(--txt3);font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;}
+
+/* notes */
+.notes-wrap{padding:10px 15px;}
+.notes-wrap h4{font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:6px;}
+textarea{width:100%;background:rgba(255,255,255,0.05);border:1.5px solid var(--border2);
+  border-radius:11px;padding:10px 13px;color:var(--txt);font-family:var(--sans);
+  font-size:13px;resize:none;outline:none;height:75px;}
+textarea:focus{border-color:var(--amber);}
+
+/* signature */
+.sig-wrap{margin:10px 15px;background:rgba(255,255,255,0.02);
+  border:1px solid var(--border2);border-radius:14px;padding:14px;}
+.sig-wrap h4{font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;}
+#sig-canvas{width:100%;height:120px;border-radius:9px;background:rgba(255,255,255,0.04);
+  border:1.5px solid var(--border2);touch-action:none;cursor:crosshair;display:block;}
+.sig-ctrls{display:flex;gap:8px;margin-top:7px;align-items:center;}
+.btn-sigclr{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;
+  border-radius:8px;padding:6px 12px;font-family:var(--sans);font-size:11px;font-weight:700;cursor:pointer;}
+.sig-hint{flex:1;font-size:10px;color:var(--txt3);}
+
+/* bottom bar */
+.botbar{flex-shrink:0;background:rgba(7,17,31,.97);backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);padding:9px 13px;display:flex;gap:8px;}
+.btn-sub{flex:1;border:none;border-radius:13px;padding:14px;font-family:var(--sans);
+  font-size:15px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+.btn-sub.on{background:linear-gradient(135deg,var(--green),var(--teal));color:#fff;
+  box-shadow:0 5px 20px rgba(22,163,74,.4);}
+.btn-sub.off{background:rgba(255,255,255,0.06);color:var(--txt3);cursor:default;}
+.btn-cancel{background:rgba(255,255,255,0.06);border:1px solid var(--border2);color:var(--txt2);
+  border-radius:13px;padding:14px 14px;font-family:var(--sans);font-size:13px;
+  font-weight:700;cursor:pointer;white-space:nowrap;}
+
+/* ══ RESULT ══ */
+#s-result{background:linear-gradient(160deg,#07111f 0%,#0c1f3a 100%);
+  overflow-y:auto;padding:32px 18px 52px;align-items:center;}
+.r-emoji{font-size:60px;display:block;text-align:center;margin-bottom:8px;
+  filter:drop-shadow(0 0 18px rgba(251,191,36,.5));}
+.r-tag{display:inline-block;background:rgba(6,182,212,.14);border:1px solid var(--cyan);
+  color:var(--cyan);font-size:11px;font-weight:700;padding:4px 13px;border-radius:20px;
+  margin-bottom:10px;text-align:center;width:100%;}
+.r-grade{font-size:20px;font-weight:900;margin-bottom:3px;text-align:center;}
+.r-score{font-family:var(--mono);font-size:68px;font-weight:700;line-height:1;margin:6px 0;text-align:center;}
+.r-den{font-size:14px;color:var(--txt2);text-align:center;}
+.r-pct{font-size:16px;font-weight:700;margin-top:4px;margin-bottom:24px;text-align:center;}
+.bcard{width:100%;background:var(--surf);border:1px solid var(--border2);border-radius:18px;padding:16px;margin-bottom:14px;}
+.bcard h3{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:12px;}
+.brow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
+.brow:last-child{border-bottom:none;}
+.brow-ico{font-size:15px;min-width:20px;}
+.brow-nm{font-size:12px;flex:1;}
+.brow-bar{width:80px;}
+.brow-bg{height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
+.brow-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.brow-val{font-family:var(--mono);font-size:11px;font-weight:700;min-width:40px;text-align:right;}
+.fcard{width:100%;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.22);
+  border-radius:18px;padding:16px;margin-bottom:14px;}
+.fcard h3{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fca5a5;margin-bottom:10px;}
+.fitem{display:flex;gap:7px;padding:6px 0;border-bottom:1px solid rgba(239,68,68,.1);font-size:12px;color:#fca5a5;}
+.fitem:last-child{border-bottom:none;}
+.fitem::before{content:'•';color:var(--red);flex-shrink:0;}
+.sheet-ok{width:100%;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);
+  border-radius:14px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#86efac;text-align:center;}
+.sheet-ok strong{display:block;font-size:15px;margin-bottom:3px;}
+.r-btns{width:100%;display:flex;flex-direction:column;gap:9px;}
+.btn-next{width:100%;border:none;border-radius:15px;padding:17px;font-family:var(--sans);
+  font-size:16px;font-weight:800;cursor:pointer;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;
+  box-shadow:0 7px 26px rgba(29,111,245,.4);
+  display:flex;align-items:center;justify-content:center;gap:9px;transition:transform .15s;}
+.btn-next:active{transform:scale(.97);}
+.btn-dash{width:100%;border:1.5px solid var(--border2);background:transparent;border-radius:15px;
+  padding:15px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;
+  color:var(--txt2);display:flex;align-items:center;justify-content:center;gap:8px;}
+
+/* ══ DASHBOARD ══ */
+#s-dash{background:var(--bg);overflow-y:auto;}
+.dash-hd{background:linear-gradient(135deg,var(--surf2),var(--surf));
+  border-bottom:1px solid var(--border);padding:16px 16px 12px;flex-shrink:0;}
+.dash-hd-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.dash-hd h2{font-size:18px;font-weight:900;}
+.dash-hd h2 em{color:var(--cyan);font-style:normal;}
+.btn-closedash{background:rgba(255,255,255,0.07);border:1px solid var(--border2);color:var(--txt2);
+  border-radius:9px;padding:6px 12px;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.kcard{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:12px;}
+.kcard .kv{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1;}
+.kcard .kl{font-size:10px;color:var(--txt2);margin-top:4px;font-weight:600;}
+.kcard .ks{font-size:10px;color:var(--txt3);margin-top:2px;}
+.dash-body{flex:1;overflow-y:auto;padding:14px;}
+.dsec{margin-bottom:16px;}
+.dsec-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:9px;}
+.bchart{display:flex;align-items:flex-end;gap:5px;height:85px;}
+.bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.bcol-wrap{flex:1;width:100%;display:flex;align-items:flex-end;}
+.bbar{width:100%;border-radius:4px 4px 0 0;min-height:4px;}
+.blabel{font-size:9px;color:var(--txt3);font-family:var(--mono);}
+.bval{font-size:9px;font-weight:700;font-family:var(--mono);}
+.log-item{background:var(--surf);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:11px;}
+.log-rnum{font-family:var(--mono);font-size:16px;font-weight:700;min-width:50px;}
+.log-inf{flex:1;}
+.log-name{font-size:12px;font-weight:600;}
+.log-meta{font-size:10px;color:var(--txt2);margin-top:2px;}
+.log-sc{font-family:var(--mono);font-size:20px;font-weight:700;}
+.log-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;margin-top:2px;display:inline-block;}
+.bg-great{background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.28);}
+.bg-pass{background:rgba(245,158,11,.18);color:#fcd34d;border:1px solid rgba(245,158,11,.28);}
+.bg-fail{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.28);}
+.savg-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
+.savg-row:last-child{border-bottom:none;}
+.savg-lbl{font-size:12px;min-width:90px;}
+.savg-bar{flex:1;}
+.savg-bg{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.savg-fill{height:100%;border-radius:3px;}
+.savg-val{font-family:var(--mono);font-size:11px;font-weight:700;min-width:38px;text-align:right;}
+
+/* toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  padding:11px 20px;border-radius:40px;font-size:13px;font-weight:700;color:#fff;
+  box-shadow:0 7px 26px rgba(0,0,0,.5);z-index:999;white-space:nowrap;pointer-events:none;
+  animation:tin .3s ease,tout .3s ease 2.5s forwards;}
+@keyframes tin{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes tout{to{opacity:0;transform:translateX(-50%) translateY(10px)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.pulse{animation:pulse .22s ease;}
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP ══ -->
+<div id="s-setup" class="screen on">
+  <div class="setup-hd">
+    <span class="logo">🏨</span>
+    <h1>Hotel <em>Room Audit</em></h1>
+    <p>แบบตรวจสอบความสะอาดห้องพัก — 33 รายการ / 165 คะแนน</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 ข้อมูลผู้ตรวจสอบ</div>
+    <div style="margin-bottom:12px;">
+      <label class="lbl">ชื่อผู้ตรวจ *</label>
+      <input type="text" id="i-name" placeholder="ชื่อ-นามสกุล">
+    </div>
+    <div class="row2">
+      <div><label class="lbl">วันที่ตรวจ</label><input type="date" id="i-date"></div>
+      <div><label class="lbl">กะ / Shift</label>
+        <select id="i-shift">
+          <option value="เช้า">☀️ เช้า 06-14</option>
+          <option value="บ่าย">🌤 บ่าย 14-22</option>
+          <option value="ดึก">🌙 ดึก 22-06</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚪 ข้อมูลห้อง</div>
+    <div style="margin-bottom:12px;">
+      <label class="lbl">เลขห้อง *</label>
+      <input type="text" id="i-room" placeholder="เช่น 305"
+        style="font-size:24px;font-weight:900;font-family:var(--mono);letter-spacing:-1px;">
+    </div>
+    <div><label class="lbl">ประเภทห้อง</label>
+      <div class="type-grid">
+        <button class="tybtn on" data-t="Check-out" onclick="selType(this)">🔴<br>Check-out</button>
+        <button class="tybtn" data-t="Stay-over" onclick="selType(this)">🟢<br>Stay-over</button>
+        <button class="tybtn" data-t="Deep Clean" onclick="selType(this)">🟣<br>Deep Clean</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.2);">
+    <div class="card-title" style="color:var(--amber);">⭐ เกณฑ์คะแนน</div>
+    <div class="score-legend-setup">
+      <span class="sleg" style="background:rgba(239,68,68,.2);color:#fca5a5;">1 = ไม่ผ่าน</span>
+      <span class="sleg" style="background:rgba(245,158,11,.2);color:#fcd34d;">2 = ต้องปรับปรุง</span>
+      <span class="sleg" style="background:rgba(96,165,250,.2);color:#93c5fd;">3 = พอใช้</span>
+      <span class="sleg" style="background:rgba(52,211,153,.2);color:#6ee7b7;">4 = ดี</span>
+      <span class="sleg" style="background:rgba(34,197,94,.2);color:#86efac;">5 = ดีเยี่ยม</span>
+      <span class="sleg" style="background:rgba(148,163,184,.1);color:#94a3b8;">N/A = ไม่เกี่ยวข้อง</span>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--txt2);line-height:1.6;">
+      เกณฑ์ผ่าน: <strong style="color:#fbbf24;">≥ 124 คะแนน (75%)</strong> &nbsp;|&nbsp;
+      ดีมาก: <strong style="color:#22c55e;">≥ 144 คะแนน (87%)</strong>
+    </div>
+  </div>
+
+  <button class="btn-go" onclick="startAudit()">🔍 เริ่มตรวจห้อง</button>
+</div>
+
+<!-- ══ AUDIT ══ -->
+<div id="s-audit" class="screen">
+  <div class="topbar">
+    <div class="room-chip" id="tb-room">—</div>
+    <div class="tb-info">
+      <div class="tb-name" id="tb-name">—</div>
+      <div class="tb-meta" id="tb-meta">—</div>
+    </div>
+    <div class="live-wrap">
+      <div class="live-num" id="live-num">0</div>
+      <div class="live-den">/ 165</div>
+    </div>
+  </div>
+  <div class="progbar"><div class="progbar-fill" id="prog" style="width:0%"></div></div>
+  <div class="sectabs" id="sectabs"></div>
+  <div class="ascroll" id="ascroll"></div>
+  <div class="botbar">
+    <button class="btn-cancel" onclick="showScreen('setup')">← ยกเลิก</button>
+    <button class="btn-sub off" id="btn-sub" onclick="doSubmit()">
+      <span id="sub-txt">⬆ ส่งผล (0/33)</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div id="s-result" class="screen">
+  <span class="r-emoji" id="r-emoji">🌟</span>
+  <div class="r-tag" id="r-tag">—</div>
+  <div class="r-grade" id="r-grade">—</div>
+  <div class="r-score" id="r-score">0</div>
+  <div class="r-den">คะแนน จาก 165</div>
+  <div class="r-pct" id="r-pct">—</div>
+  <div class="bcard"><h3>📊 คะแนนแต่ละ Section</h3><div id="r-bdown"></div></div>
+  <div id="r-fail-wrap"></div>
+  <div class="sheet-ok" id="r-sheet-status">
+    <strong>📊 กำลังส่งข้อมูล → Google Sheets...</strong>
+  </div>
+  <div class="r-btns">
+    <button class="btn-next" onclick="nextRoom()">🚪 ตรวจห้องถัดไป</button>
+    <button class="btn-dash" onclick="showDash()">📊 ดู Dashboard</button>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div id="s-dash" class="screen">
+  <div class="dash-hd">
+    <div class="dash-hd-top">
+      <h2>Dashboard <em>วันนี้</em></h2>
+      <button class="btn-closedash" onclick="showScreen('result')">✕ ปิด</button>
+    </div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+  </div>
+  <div class="dash-body">
+    <div class="dsec"><div class="dsec-title">📈 คะแนนรายห้อง</div><div class="bchart" id="bchart"></div></div>
+    <div class="dsec"><div class="dsec-title">📋 บันทึกวันนี้</div><div id="log-list"></div></div>
+    <div class="dsec">
+      <div class="dsec-title">🔧 คะแนนเฉลี่ยแต่ละ Section</div>
+      <div style="background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:14px 15px;" id="sec-avg"></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="photo-input" accept="image/*" capture="environment" multiple style="display:none">
+
+<script>
+// ══ CONFIG — URL เชื่อมกับ Google Sheets ══
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycby_x977Odp_COjcwz3MIe-JDKAjnD6dXVkoHnbZGerIVd-g_MxWNPOQvT-ftVb0cOiY4g/exec';
+const PASS_SCORE = 124;   // 75%
+const GREAT_SCORE = 144;  // 87%
+const MAX_SCORE = 165;
+const TOTAL_ITEMS = 33;
+
+// ══ CHECKLIST — 33 รายการ ตรงตามไฟล์ Excel ══
+const SECS = [
+  { id:'s1', icon:'🛏️', name:'ห้องนอน', full:'ห้องนอน / BEDROOM', color:'#0d9488', max:25, items:[
+    'เตียงปูเรียบ ผ้าปูที่นอนสะอาด ไม่มีรอยยับ',
+    'หมอน/ผ้าห่ม สะอาด ไม่มีกลิ่น จัดวางเรียบร้อย',
+    'ที่นอนไม่มีคราบ/รอยเปื้อน',
+    'ไม่มีฝุ่นบนหัวเตียง โต๊ะข้างเตียง ชั้นวาง',
+    'ผ้าม่าน สะอาด ใช้งานได้ปกติ',
+  ]},
+  { id:'s2', icon:'🛁', name:'ห้องน้ำ', full:'ห้องน้ำ / BATHROOM', color:'#7c3aed', max:45, items:[
+    'โถส้วม สะอาด ไม่มีคราบ ไม่มีกลิ่น',
+    'อ่างล้างหน้า กระจก ก๊อกน้ำ ขัดสะอาดเงา',
+    'ฝักบัว/อ่างอาบน้ำ ไม่มีคราบหินปูน/รา',
+    'พื้นห้องน้ำ แห้ง สะอาด ไม่ลื่น',
+    'อุปกรณ์สุขภัณฑ์ครบ (สบู่ แชมพู ผ้าขนหนู)',
+    'ผ้าขนหนูสะอาด ไม่มีรอยเปื้อน จัดเรียบร้อย',
+    'ถังขยะสะอาด ไม่มีเศษขยะ',
+    'ฟอร์เดนไม่มีเศษขยะและเส้นผม',
+    'ไม่มีหยากใยที่ ผนัง ฝ้า บานวงกบ ห้องน้ำ',
+  ]},
+  { id:'s3', icon:'🪟', name:'พื้นที่ทั่วไป', full:'พื้นที่ทั่วไป / GENERAL', color:'#1d6ff5', max:60, items:[
+    'พื้นห้องดูดฝุ่น/ถูสะอาด ไม่มีสิ่งสกปรก',
+    'โซฟา/เก้าอี้ ไม่มีเศษอาหาร/คราบ',
+    'โต๊ะทำงาน/กระจก เช็ดสะอาดปราศจากรอยนิ้ว',
+    'ตู้/ลิ้นชัก ด้านในสะอาด ไม่มีสิ่งของตกค้าง',
+    'อุปกรณ์อิเล็กทรอนิกส์ (ทีวี รีโมท AC) สะอาด/ทำงานปกติ',
+    'ตู้เย็นสะอาด ไม่มีกลิ่น น้ำแข็ง จัดของใหม่ครบ',
+    'รีโมททีวี กล่องทิชชู่ ป้าย WIFI วางเรียบร้อย',
+    'มีกระดาษทิชชู่เพียงพอใช้งาน',
+    'ไม้แขวนเสื้อแขวนให้เป็นระเบียบ',
+    'สายไฟหลังทีวีไม่หลุดห้อยลงมา',
+    'หลอดไฟติดครบทุกดวง',
+    'ระเบียงด้านนอกไม่มีขยะ',
+  ]},
+  { id:'s4', icon:'🧴', name:'Amenities', full:'อุปกรณ์ / AMENITIES', color:'#d97706', max:20, items:[
+    'น้ำดื่ม/แก้ว/กาต้มน้ำ/ที่เปิดขวด มาม่า สะอาด เติมครบ',
+    'มินิบาร์มีของครบ สะอาด จัดวางเรียบร้อย',
+    'ไดร์เป่าผมเก็บเป็นระเบียบ สะอาด',
+    'Wi-Fi card, TV remote, Do Not Disturb sign ครบ',
+  ]},
+  { id:'s5', icon:'🌸', name:'ภาพรวม', full:'ภาพรวม / OVERALL', color:'#e11d48', max:15, items:[
+    'กลิ่นในห้อง สดชื่น ไม่มีกลิ่นอับ',
+    'ความเป็นระเบียบเรียบร้อยโดยรวม',
+    'ความประทับใจแรก (First Impression)',
+  ]},
+];
+
+// ══ STATE ══
+let scores={}, photos=[], sigURL='', sigDrawing=false, sigHasMark=false;
+let sigCanvas, sigCtx;
+let sessions=[];
+try{sessions=JSON.parse(localStorage.getItem('ha_s')||'[]');}catch(e){}
+let selRoomType='Check-out';
+
+window.onload=()=>{
+  document.getElementById('i-date').value=new Date().toISOString().slice(0,10);
+  buildUI();
+};
+
+function selType(b){
+  document.querySelectorAll('.tybtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); selRoomType=b.dataset.t;
+}
+
+// ══ BUILD AUDIT UI ══
+function buildUI(){
+  const tabs=document.getElementById('sectabs');
+  const scroll=document.getElementById('ascroll');
+  tabs.innerHTML=''; scroll.innerHTML='';
+
+  SECS.forEach((sec,si)=>{
+    const tb=document.createElement('button');
+    tb.className='stab'+(si===0?' on':'');
+    tb.id='tab-'+sec.id;
+    tb.innerHTML=`${sec.icon} ${sec.name} <span class="stab-ok" id="tok-${sec.id}"></span>`;
+    tb.onclick=()=>switchSec(si);
+    tabs.appendChild(tb);
+
+    const panel=document.createElement('div');
+    panel.className='spanel'+(si===0?' on':'');
+    panel.id='panel-'+sec.id;
+
+    let globalNo=SECS.slice(0,si).reduce((a,s)=>a+s.items.length,0);
+    let html=`<div class="spanel-hd">
+      <span class="spanel-icon">${sec.icon}</span>
+      <span class="spanel-name">${sec.full}</span>
+      <span class="spanel-score" id="ss-${sec.id}" style="background:${sec.color}22;color:${sec.color};border:1px solid ${sec.color}44;">0/${sec.max}</span>
+    </div>
+    <div class="s-legend">
+      <span class="s-leg-item" style="background:rgba(239,68,68,.15);color:#fca5a5;">1=ไม่ผ่าน</span>
+      <span class="s-leg-item" style="background:rgba(245,158,11,.15);color:#fcd34d;">2=ต้องปรับ</span>
+      <span class="s-leg-item" style="background:rgba(96,165,250,.15);color:#93c5fd;">3=พอใช้</span>
+      <span class="s-leg-item" style="background:rgba(52,211,153,.15);color:#6ee7b7;">4=ดี</span>
+      <span class="s-leg-item" style="background:rgba(34,197,94,.15);color:#86efac;">5=ดีเยี่ยม</span>
+      <span class="s-leg-item" style="background:rgba(148,163,184,.1);color:#94a3b8;">N/A</span>
+    </div>`;
+
+    sec.items.forEach((item,ii)=>{
+      const key=`${sec.id}-${ii}`;
+      html+=`<div class="item" id="item-${key}">
+        <div class="item-top">
+          <span class="item-no">${globalNo+ii+1}</span>
+          <span class="item-txt" id="lt-${key}">${item}</span>
+        </div>
+        <div class="score-row">
+          <button class="sbtn s1" id="b1-${key}" onclick="vote('${key}',1)">1</button>
+          <button class="sbtn s2" id="b2-${key}" onclick="vote('${key}',2)">2</button>
+          <button class="sbtn s3" id="b3-${key}" onclick="vote('${key}',3)">3</button>
+          <button class="sbtn s4" id="b4-${key}" onclick="vote('${key}',4)">4</button>
+          <button class="sbtn s5" id="b5-${key}" onclick="vote('${key}',5)">5</button>
+          <button class="sbtn sna" id="bna-${key}" onclick="vote('${key}','NA')">N/A</button>
+        </div>
+      </div>`;
+    });
+
+    if(si===SECS.length-1){
+      html+=`<div class="photo-wrap">
+        <h4>📷 แนบรูปภาพห้อง (กดเพื่อถ่ายรูป)</h4>
+        <div class="photo-grid" id="photo-grid"><button class="btn-addphoto" onclick="openCam()">+</button></div>
+      </div>
+      <div class="notes-wrap">
+        <h4>📝 หมายเหตุ / ปัญหาที่พบ</h4>
+        <textarea id="inp-notes" placeholder="ระบุข้อสังเกต ปัญหา หรือข้อเสนอแนะ..."></textarea>
+      </div>`;
+    }
+    panel.innerHTML=html;
+    scroll.appendChild(panel);
+  });
+
+  // Sig tab
+  const sigPanel=document.createElement('div');
+  sigPanel.className='spanel'; sigPanel.id='panel-sig';
+  sigPanel.innerHTML=`<div class="spanel-hd">
+    <span class="spanel-icon">✍️</span>
+    <span class="spanel-name">ลายเซ็นผู้ตรวจ</span>
+  </div>
+  <div class="sig-wrap" style="margin-top:12px;">
+    <h4>✍️ ลากนิ้วเซ็นในกล่องด้านล่าง</h4>
+    <canvas id="sig-canvas" width="700" height="120"></canvas>
+    <div class="sig-ctrls">
+      <button class="btn-sigclr" onclick="clearSig()">🗑 ล้าง</button>
+      <span class="sig-hint">ลายเซ็นจะบันทึกพร้อมรายงาน</span>
+    </div>
+  </div>`;
+  scroll.appendChild(sigPanel);
+
+  const sigTab=document.createElement('button');
+  sigTab.className='stab'; sigTab.id='tab-sig';
+  sigTab.innerHTML='✍️ เซ็น';
+  sigTab.onclick=()=>switchSec(SECS.length);
+  tabs.appendChild(sigTab);
+
+  initSig();
+  resetState();
+}
+
+function initSig(){
+  setTimeout(()=>{
+    sigCanvas=document.getElementById('sig-canvas'); if(!sigCanvas)return;
+    sigCtx=sigCanvas.getContext('2d');
+    sigCtx.strokeStyle='#38bdf8'; sigCtx.lineWidth=2.2;
+    sigCtx.lineCap='round'; sigCtx.lineJoin='round';
+    const pos=e=>{
+      const r=sigCanvas.getBoundingClientRect();
+      const sx=sigCanvas.width/r.width, sy=sigCanvas.height/r.height;
+      const s=e.touches?e.touches[0]:e;
+      return{x:(s.clientX-r.left)*sx, y:(s.clientY-r.top)*sy};
+    };
+    sigCanvas.addEventListener('mousedown',e=>{sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);});
+    sigCanvas.addEventListener('mousemove',e=>{if(!sigDrawing)return;const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHasMark=true;});
+    sigCanvas.addEventListener('mouseup',()=>sigDrawing=false);
+    sigCanvas.addEventListener('touchstart',e=>{e.preventDefault();sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);},{passive:false});
+    sigCanvas.addEventListener('touchmove',e=>{e.preventDefault();if(!sigDrawing)return;const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHasMark=true;},{passive:false});
+    sigCanvas.addEventListener('touchend',()=>sigDrawing=false);
+  },150);
+}
+function clearSig(){if(sigCtx)sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);sigHasMark=false;sigURL='';}
+
+function resetState(){
+  scores={};
+  SECS.forEach(s=>s.items.forEach((_,i)=>scores[`${s.id}-${i}`]=null));
+  photos=[]; sigURL=''; sigHasMark=false;
+  if(sigCtx)sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height);
+  updateUI();
+}
+
+// ══ START ══
+function startAudit(){
+  const name=document.getElementById('i-name').value.trim();
+  const room=document.getElementById('i-room').value.trim();
+  if(!name||!room){toast('⚠️ กรุณากรอกชื่อผู้ตรวจและเลขห้อง','#d97706');return;}
+  document.getElementById('tb-room').textContent=room;
+  document.getElementById('tb-name').textContent=name;
+  const shift=document.getElementById('i-shift').value;
+  document.getElementById('tb-meta').textContent=`${selRoomType} • ${shift}`;
+  resetState(); switchSec(0);
+  showScreen('audit');
+  document.getElementById('ascroll').scrollTop=0;
+}
+
+function switchSec(idx){
+  document.querySelectorAll('.spanel').forEach((p,i)=>p.classList.toggle('on',i===idx));
+  document.querySelectorAll('.stab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  document.getElementById('ascroll').scrollTop=0;
+}
+
+// ══ VOTE ══
+function vote(key,val){
+  scores[key]=val;
+  ['b1','b2','b3','b4','b5','bna'].forEach((id,i)=>{
+    const v=[1,2,3,4,5,'NA'][i];
+    const btn=document.getElementById(`${id}-${key}`);
+    if(btn) btn.className='sbtn '+['s1','s2','s3','s4','s5','sna'][i]+(v===val?' on':'');
+  });
+  const lbl=document.getElementById(`lt-${key}`);
+  if(lbl) lbl.className='item-txt'+(val>=4?' done':'');
+  updateUI();
+}
+
+function updateUI(){
+  let answered=0, total=0;
+  SECS.forEach(sec=>{
+    let ss=0, sd=0;
+    sec.items.forEach((_,i)=>{
+      const v=scores[`${sec.id}-${i}`];
+      if(v!==null){answered++;sd++;if(v!=='NA'){total+=v;ss+=v;}}
+    });
+    const sb=document.getElementById(`ss-${sec.id}`);
+    if(sb)sb.textContent=`${ss}/${sec.max}`;
+    const tk=document.getElementById(`tok-${sec.id}`);
+    if(tk)tk.textContent=sd===sec.items.length?'✓':'';
+  });
+  document.getElementById('prog').style.width=(answered/TOTAL_ITEMS*100)+'%';
+  const el=document.getElementById('live-num');
+  el.textContent=total; el.classList.add('pulse');
+  setTimeout(()=>el.classList.remove('pulse'),250);
+  const p=total/MAX_SCORE;
+  el.style.color=p>=.87?'#4ade80':p>=.75?'#fbbf24':'#f87171';
+  const done=answered===TOTAL_ITEMS;
+  const btn=document.getElementById('btn-sub');
+  btn.className='btn-sub '+(done?'on':'off');
+  document.getElementById('sub-txt').textContent=done?'📤 ส่งผลห้องนี้':`⬆ ส่งผล (${answered}/${TOTAL_ITEMS})`;
+}
+
+// ══ PHOTO ══
+function openCam(){document.getElementById('photo-input').click();}
+document.getElementById('photo-input').addEventListener('change',function(e){
+  Array.from(e.target.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{photos.push(ev.target.result);renderPhotos();};
+    r.readAsDataURL(f);
+  }); this.value='';
+});
+function renderPhotos(){
+  const g=document.getElementById('photo-grid');if(!g)return;
+  g.innerHTML='';
+  photos.forEach((src,i)=>{
+    const img=document.createElement('img');
+    img.src=src;img.className='photo-thumb';
+    img.onclick=()=>{photos.splice(i,1);renderPhotos();};
+    g.appendChild(img);
+  });
+  const ab=document.createElement('button');
+  ab.className='btn-addphoto';ab.textContent='+';ab.onclick=openCam;
+  g.appendChild(ab);
+}
+
+// ══ SUBMIT ══
+function doSubmit(){
+  const answered=Object.values(scores).filter(v=>v!==null).length;
+  if(answered<TOTAL_ITEMS){toast('⚠️ ยังตรวจไม่ครบทุกรายการ','#d97706');return;}
+  if(sigHasMark)sigURL=sigCanvas.toDataURL('image/png');
+
+  let total=0;
+  const sData={};
+  SECS.forEach(sec=>{
+    let ss=0;
+    sec.items.forEach((_,i)=>{const v=scores[`${sec.id}-${i}`];if(v!==null&&v!=='NA')ss+=v;});
+    sData[sec.id]=ss;total+=ss;
+  });
+
+  const pct=Math.round(total/MAX_SCORE*100);
+  const grade=pct>=87?'Excellent':pct>=75?'Pass':'Fail';
+  const roomNo=document.getElementById('i-room').value.trim();
+  const inspector=document.getElementById('i-name').value.trim();
+  const shift=document.getElementById('i-shift').value;
+  const date=document.getElementById('i-date').value;
+  const notes=document.getElementById('inp-notes')?.value||'';
+
+  // Save locally
+  const session={date,inspector,shift,roomNo,roomType:selRoomType,total,pct,grade,sData,notes,photos:photos.length,ts:Date.now()};
+  sessions.push(session);
+  try{localStorage.setItem('ha_s',JSON.stringify(sessions.slice(-60)));}catch(e){}
+
+  // Send to Google Sheets
+  const payload={date,inspector,shift,roomNo,roomType:selRoomType,
+    s1:sData.s1,s2:sData.s2,s3:sData.s3,s4:sData.s4,s5:sData.s5,
+    total,pct,grade,notes};
+
+  const statusEl=document.getElementById('r-sheet-status');
+  fetch(SHEET_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(()=>{
+    statusEl.innerHTML='<strong>✅ ส่งข้อมูลเข้า Google Sheets เรียบร้อย!</strong>ดูผลได้ที่ Sheet "Responses"';
+    statusEl.style.background='rgba(22,163,74,.1)';
+    statusEl.style.borderColor='rgba(22,163,74,.3)';
+  }).catch(()=>{
+    statusEl.innerHTML='<strong>⚠️ ไม่สามารถส่งข้อมูลได้</strong>ข้อมูลบันทึกในเครื่องแล้ว ลองใหม่เมื่อมี WiFi';
+    statusEl.style.background='rgba(245,158,11,.1)';
+    statusEl.style.borderColor='rgba(245,158,11,.3)';
+    statusEl.style.color='#fcd34d';
+  });
+
+  showResult(total,pct,sData,grade,roomNo,inspector);
+}
+
+function showResult(total,pct,sData,grade,roomNo,inspector){
+  const emoji=pct>=87?'🌟':pct>=75?'✅':'❌';
+  const gradeText=pct>=87?'ดีมาก — ผ่านมาตรฐาน':pct>=75?'ผ่าน — ควรปรับปรุง':'ไม่ผ่าน — ต้องทำซ้ำ';
+  const col=pct>=87?'#4ade80':pct>=75?'#fbbf24':'#f87171';
+  document.getElementById('r-emoji').textContent=emoji;
+  document.getElementById('r-grade').textContent=gradeText;
+  document.getElementById('r-grade').style.color=col;
+  document.getElementById('r-score').textContent=total;
+  document.getElementById('r-score').style.color=col;
+  document.getElementById('r-pct').textContent=`${pct}% • ห้อง ${roomNo} • ${inspector}`;
+  document.getElementById('r-pct').style.color=col;
+  document.getElementById('r-tag').textContent=`ห้อง ${roomNo} • ${selRoomType} • ${document.getElementById('i-shift').value}`;
+  document.getElementById('r-sheet-status').innerHTML='<strong>📊 กำลังส่งข้อมูล → Google Sheets...</strong>';
+
+  const sC={s1:'#0d9488',s2:'#7c3aed',s3:'#1d6ff5',s4:'#d97706',s5:'#e11d48'};
+  let bhtml='';
+  SECS.forEach(sec=>{
+    const got=sData[sec.id]||0;const p2=Math.round(got/sec.max*100);
+    bhtml+=`<div class="brow">
+      <span class="brow-ico">${sec.icon}</span>
+      <span class="brow-nm">${sec.full}</span>
+      <div class="brow-bar"><div class="brow-bg"><div class="brow-fill" style="width:${p2}%;background:${sC[sec.id]}"></div></div></div>
+      <span class="brow-val" style="color:${sC[sec.id]}">${got}/${sec.max}</span>
+    </div>`;
+  });
+  document.getElementById('r-bdown').innerHTML=bhtml;
+
+  const fails=[];
+  SECS.forEach(sec=>sec.items.forEach((item,i)=>{
+    if(scores[`${sec.id}-${i}`]!==null&&scores[`${sec.id}-${i}`]!=='NA'&&scores[`${sec.id}-${i}`]<=2)
+      fails.push(`[${scores[`${sec.id}-${i}`]}] ${item}`);
+  }));
+  document.getElementById('r-fail-wrap').innerHTML=fails.length
+    ?`<div class="fcard"><h3>⚠️ รายการที่ต้องปรับปรุง (${fails.length} รายการ)</h3>${fails.map(f=>`<div class="fitem">${f}</div>`).join('')}</div>`:'';
+
+  showScreen('result');
+}
+
+function nextRoom(){
+  const cur=document.getElementById('i-room').value;
+  const n=parseInt(cur);if(!isNaN(n))document.getElementById('i-room').value=String(n+1);
+  showScreen('setup');
+}
+
+// ══ DASHBOARD ══
+function showDash(){
+  const today=new Date().toISOString().slice(0,10);
+  const all=sessions.filter(s=>s.date===today);
+  const total=all.length, passed=all.filter(s=>s.pct>=75).length;
+  const great=all.filter(s=>s.pct>=87).length;
+  const avg=total?Math.round(all.reduce((a,s)=>a+s.total,0)/total):0;
+
+  document.getElementById('kpi-grid').innerHTML=`
+    <div class="kcard"><div class="kv" style="color:var(--sky)">${total}</div><div class="kl">ห้องที่ตรวจวันนี้</div></div>
+    <div class="kcard"><div class="kv" style="color:var(--glow)">${passed}</div><div class="kl">ผ่านเกณฑ์</div><div class="ks">${total?Math.round(passed/total*100):0}% pass rate</div></div>
+    <div class="kcard"><div class="kv" style="color:var(--gold)">${great}</div><div class="kl">🌟 ดีมาก</div></div>
+    <div class="kcard"><div class="kv" style="color:var(--amber)">${avg}</div><div class="kl">คะแนนเฉลี่ย</div><div class="ks">จาก 165</div></div>`;
+
+  let chart='';
+  all.slice(-12).forEach(s=>{
+    const h=Math.max(5,s.pct);
+    const cl=s.pct>=87?'#22c55e':s.pct>=75?'#f59e0b':'#ef4444';
+    chart+=`<div class="bcol">
+      <span class="bval" style="color:${cl}">${s.total}</span>
+      <div class="bcol-wrap"><div class="bbar" style="height:${h}%;background:${cl}"></div></div>
+      <span class="blabel">${s.roomNo}</span>
+    </div>`;
+  });
+  document.getElementById('bchart').innerHTML=chart||'<span style="color:var(--txt3);font-size:12px;padding:10px;">ยังไม่มีข้อมูลวันนี้</span>';
+
+  let logHTML='';
+  [...all].reverse().forEach(s=>{
+    const bc=s.pct>=87?'bg-great':s.pct>=75?'bg-pass':'bg-fail';
+    const bl=s.pct>=87?'ดีมาก':s.pct>=75?'ผ่าน':'ไม่ผ่าน';
+    logHTML+=`<div class="log-item">
+      <div class="log-rnum" style="color:var(--gold)">${s.roomNo}</div>
+      <div class="log-inf"><div class="log-name">${s.inspector}</div>
+        <div class="log-meta">${s.roomType} • ${s.shift} • ${s.photos} รูป</div></div>
+      <div style="text-align:right">
+        <div class="log-sc" style="color:${s.pct>=87?'#22c55e':s.pct>=75?'#fbbf24':'#ef4444'}">${s.total}</div>
+        <span class="log-badge ${bc}">${bl} ${s.pct}%</span>
+      </div>
+    </div>`;
+  });
+  document.getElementById('log-list').innerHTML=logHTML||'<div style="color:var(--txt3);font-size:12px;padding:10px;">ยังไม่มีข้อมูลวันนี้</div>';
+
+  const sC={s1:'#0d9488',s2:'#7c3aed',s3:'#1d6ff5',s4:'#d97706',s5:'#e11d48'};
+  let avgHTML='';
+  SECS.forEach(sec=>{
+    const vals=all.map(s=>s.sData?.[sec.id]||0);
+    const av=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0;
+    avgHTML+=`<div class="savg-row">
+      <span class="savg-lbl">${sec.icon} ${sec.name}</span>
+      <div class="savg-bar"><div class="savg-bg"><div class="savg-fill" style="width:${Math.round(av/sec.max*100)}%;background:${sC[sec.id]}"></div></div></div>
+      <span class="savg-val" style="color:${sC[sec.id]}">${av}/${sec.max}</span>
+    </div>`;
+  });
+  document.getElementById('sec-avg').innerHTML=avgHTML;
+  showScreen('dash');
+}
+
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-'+n).classList.add('on');
+}
+function toast(msg,color='#10b981'){
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;t.style.background=color;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+</script>
+</body>
+</html>
